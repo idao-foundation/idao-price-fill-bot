@@ -1,1 +1,1 @@
-export { webhookRouter } from "./webhookRouter";
+export { webhookRouter } from "./lambdas/webhookRouter";

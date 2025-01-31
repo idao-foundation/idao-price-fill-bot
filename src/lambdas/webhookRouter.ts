@@ -1,6 +1,6 @@
-import { validateUuid } from "./aws";
-import { routeEvent } from "./eventRouting/router";
-import { validateAlchemyWebhookEvent } from "./models/alchemyWebhook";
+import { validateUuid } from "../utils/aws";
+import { routeEvent } from "../eventRouting/router";
+import { validateAlchemyWebhookEvent } from "../models/alchemyWebhook";
 
 export async function webhookRouter(event: any) {
     const uuid = event.pathParameters?.uuid;
