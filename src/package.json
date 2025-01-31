@@ -1,0 +1,9 @@
+{
+    "name": "price-fill-bot-v2",
+    "version": "1.0.0",
+    "main": "index.js",
+    "dependencies": {
+        "aws-sdk": "^2.814.0",
+        "zod": "^3.24.1"
+    }
+}
