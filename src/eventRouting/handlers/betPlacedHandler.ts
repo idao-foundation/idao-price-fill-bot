@@ -8,10 +8,20 @@ export async function handleBetPlaced(event: AlchemyLog, network: string): Promi
     const betId = ethers.getNumber(event.topics[1]);
 
     // Bid end timestamp (the time when fillPrice must be called) is the fourth parameter in the event data
-    const bidEndTimestamp = ethers.AbiCoder.defaultAbiCoder().decode(
-        ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
-        event.data
-    )[3] as bigint
+    let bidEndTimestamp: bigint;
+    if (event.data.length == (64 * 7) + 2) {
+        bidEndTimestamp = ethers.AbiCoder.defaultAbiCoder().decode(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            event.data
+        )[3] as bigint
+    }
+    else {
+        bidEndTimestamp = ethers.AbiCoder.defaultAbiCoder().decode(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            event.data
+        )[3] as bigint;
+    }
+
 
     const scheduleExecutionAt = new Date(Number(bidEndTimestamp) * 1000);
     const input: ExecutionScheduleInput = {
@@ -29,3 +39,5 @@ export async function handleBetPlaced(event: AlchemyLog, network: string): Promi
         network
     );
 }
+
+// 0x00000000000000000000000000000000000000000000000000470de4df82000000000000000000000000000000000000000000000000000000000946b5a749000000000000000000000000000000000000000000000000000000000000000e1000000000000000000000000000000000000000000000000000000000679e7dc10000000000000000000000000000000000000000000000000000000000005460000000000000000000000000000000000000000000000000000009467619c100

@@ -71,8 +71,8 @@ async function main() {
     await createAlchemyVariable(variable, [
         // Sepolia.BetContract
         '0x5E945200e9eFF3d4414a4466B5008643dceC7073',
-        // Sepolia.RegisterPoints.BetPoints
-        '0x22629Ab96Afc9E1e5964eD3926Ba740d233393Af'
+        // Polygon.BetContract
+        "0x1Ad528c5d7906543E369a605f6EF0Be503aBff76"
     ]);
 
     const values = await getVariable(variable);
