@@ -1,6 +1,6 @@
 import { AlchemyLog } from "../models/alchemyWebhook";
 
-export function routeEvent(event: AlchemyLog, network: string): { accepted: boolean } {
+export async function routeEvent(event: AlchemyLog, network: string) {
     // Ethereum Sepolia Testnet
     if (network == "ETH_SEPOLIA") {
         // BetContract

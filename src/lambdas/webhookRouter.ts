@@ -25,7 +25,7 @@ export async function webhookRouter(event: any) {
 
     let acceptedEvents = 0;
     for (const event of parsedBody.event.data.block.logs) {
-        const result = routeEvent(event, parsedBody.event.network);
+        const result = await routeEvent(event, parsedBody.event.network);
         if (result.accepted) {
             acceptedEvents++;
         }
