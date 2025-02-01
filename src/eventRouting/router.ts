@@ -1,4 +1,5 @@
 import { AlchemyLog } from "../models/alchemyWebhook";
+import * as handlers from "./handlers/betPlacedHandler";
 
 export async function routeEvent(event: AlchemyLog, network: string) {
     // Ethereum Sepolia Testnet
@@ -8,6 +9,8 @@ export async function routeEvent(event: AlchemyLog, network: string) {
             // BetPlaced
             if (event.topics[0] == "0x9e4ad81a505fc8a24407fca5bf334977871fb70d112d0b02a91949862b7894ec") {
                 console.log('Caught ETH_SEPOLIA.BetContract.BetPlaced event');
+
+                await handlers.handleBetPlaced(event, network);
 
                 return { accepted: true };
             }

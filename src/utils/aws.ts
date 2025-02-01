@@ -1,8 +1,9 @@
-import { SSM } from 'aws-sdk';
+import { Scheduler, SSM } from 'aws-sdk';
+
+const scheduler = new Scheduler();
+const ssm = new SSM();
 
 export async function validateUuid(uuid: string) {
-    const ssm = new SSM();
-
     try {
         const parameter = await ssm.getParameter({
             Name: 'ALCHEMY_REQUEST_UUID',
@@ -15,4 +16,44 @@ export async function validateUuid(uuid: string) {
         console.error('Error retrieving ALCHEMY_REQUEST_UUID parameter:', error);
         return false;
     }
+}
+
+export async function scheduleExecution(scheduleId: string, input: any, targetArn: string, role: string, executeAt: Date, executionGroup?: string) {
+    // check if rule exists
+    try {
+        await scheduler.getSchedule({
+            Name: scheduleId
+        }).promise();
+
+        // delete existing rule
+        await scheduler.deleteSchedule({
+            Name: scheduleId
+        }).promise();
+    } catch (e: any) {
+        if (e.code !== 'ResourceNotFoundException') {
+            console.error('Failed to get rule:', e);
+            throw e;
+        }
+    }
+
+    const schedule = {
+        Name: scheduleId,
+        ScheduleExpression: `at(${executeAt.toISOString().replace('.000Z', '')})`,
+        FlexibleTimeWindow: {
+            Mode: "OFF",
+        },
+        ActionAfterCompletion: "DELETE",
+        Target: {
+            Arn: targetArn,
+            Input: JSON.stringify(input),
+            RoleArn: role,
+            SqsParameters: {
+                MessageGroupId: executionGroup
+            }
+        }
+    }
+
+    await scheduler.createSchedule(schedule).promise();
+
+    console.log(`Rule '${scheduleId}' created: executing ${targetArn} at ${executeAt.toISOString()} with input: ${JSON.stringify(input)}`);
 }
