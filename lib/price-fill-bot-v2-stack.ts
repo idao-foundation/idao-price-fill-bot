@@ -69,7 +69,10 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       environment: {
         PRICE_FILL_QUEUE_ARN: priceFillQueue.queueArn,
         SCHEDULE_PRICE_FILL_ROLE_ARN: scheduleExecutionRole.roleArn,
-      }
+      },
+      insightsVersion: lambda.LambdaInsightsVersion.fromInsightVersionArn(
+        process.env.LAMBDA_INSIGHTS_EXTENSION as string
+      )
     });
 
     // Add permissions to the webhookRouter function to read the ALCHEMY_REQUEST_UUID parameter
@@ -106,6 +109,9 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       bundling: {
         nodeModules: ['aws-sdk'],
       },
+      insightsVersion: lambda.LambdaInsightsVersion.fromInsightVersionArn(
+        process.env.LAMBDA_INSIGHTS_EXTENSION as string
+      )
     });
 
     // Add permissions to the fillPrice function to read the WALLET_PRIVATE_KEY parameter
@@ -136,7 +142,7 @@ export class PriceFillBotV2Stack extends cdk.Stack {
     const uuidResource = webhook.addResource('{uuid}');
 
     // Add the webhook router method to the UUID resource
-    uuidResource.addMethod('ANY', new apigw.LambdaIntegration(webhookRouter), {
+    uuidResource.addMethod('POST', new apigw.LambdaIntegration(webhookRouter), {
       requestValidator: new apigw.RequestValidator(this, 'UUIDValidator', {
         restApi: api,
         validateRequestParameters: true,
@@ -145,5 +151,13 @@ export class PriceFillBotV2Stack extends cdk.Stack {
         'method.request.path.uuid': true,
       },
     });
+
+    // Enable lambda insights
+    webhookRouter.role?.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaInsightsExecutionRolePolicy')
+    );
+    fillPrice.role?.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaInsightsExecutionRolePolicy')
+    );
   }
 }
