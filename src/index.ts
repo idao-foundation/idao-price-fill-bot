@@ -1,2 +1,2 @@
 export { webhookRouter } from "./lambdas/webhookRouter";
-export { fillPrice } from "./lambdas/fillPrice";
+export { fillPriceWrapper as fillPrice } from "./lambdas/fillPrice";

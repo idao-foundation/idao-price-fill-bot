@@ -18,6 +18,32 @@ export async function validateUuid(uuid: string) {
     }
 }
 
+export async function getAlchemyRpcKey() {
+    const parameter = await ssm.getParameter({
+        Name: 'ALCHEMY_RPC_KEY',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('ALCHEMY_RPC_KEY parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
+export async function getWalletPrivateKey() {
+    const parameter = await ssm.getParameter({
+        Name: 'WALLET_PRIVATE_KEY',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('WALLET_PRIVATE_KEY parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
 export async function scheduleExecution(scheduleId: string, input: any, targetArn: string, role: string, executeAt: Date, executionGroup?: string) {
     // check if rule exists
     try {

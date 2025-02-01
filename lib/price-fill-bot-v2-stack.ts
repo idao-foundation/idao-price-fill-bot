@@ -23,11 +23,26 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       stringValue: process.env.ALCHEMY_REQUEST_UUID as string,
     });
 
+    // Create the SSM parameter for Alckemy RPC key
+    const alchemyRpcKey = new ssm.StringParameter(this, 'AlchemyRpcKey', {
+      parameterName: 'ALCHEMY_RPC_KEY',
+      stringValue: process.env.ALCHEMY_RPC_KEY as string,
+    });
+
+    // Create the SSM parameter for the wallet private key
+    const walletPrivateKey = new ssm.StringParameter(this, 'WalletPrivateKey', {
+      parameterName: 'WALLET_PRIVATE_KEY',
+      stringValue: process.env.WALLET_PRIVATE_KEY as string,
+    });
+
+
     // Create the SQS FIFO queue
+    const priceFillAndVisibilityTimeout = cdk.Duration.minutes(5);
     const priceFillQueue = new sqs.Queue(this, 'PriceFillQueue', {
       queueName: 'priceFillQueue.fifo',
       fifo: true,
       contentBasedDeduplication: true,
+      visibilityTimeout: priceFillAndVisibilityTimeout,
     });
 
     // Create the IAM role for EventBridge Scheduler to assume
@@ -47,7 +62,7 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       memorySize: 180,
       timeout: cdk.Duration.minutes(5),
       handler: 'webhookRouter',
-      entry: path.join(__dirname, '../src/lambdas/webhookRouter.ts'),
+      entry: path.join(__dirname, '../src/index.ts'),
       bundling: {
         nodeModules: ['aws-sdk'],
       },
@@ -85,17 +100,29 @@ export class PriceFillBotV2Stack extends cdk.Stack {
     const fillPrice = new NodejsFunction(this, 'fillPrice', {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 180,
-      timeout: cdk.Duration.minutes(5),
+      timeout: priceFillAndVisibilityTimeout,
       handler: 'fillPrice',
-      entry: path.join(__dirname, '../src/lambdas/fillPrice.ts'),
+      entry: path.join(__dirname, '../src/index.ts'),
       bundling: {
         nodeModules: ['aws-sdk'],
       },
     });
 
+    // Add permissions to the fillPrice function to read the WALLET_PRIVATE_KEY parameter
+    fillPrice.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [walletPrivateKey.parameterArn],
+    }));
+
+    // Add permissions to the fillPrice function to read the ALCHEMY_RPC_KEY parameter
+    fillPrice.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [alchemyRpcKey.parameterArn],
+    }));
+
     // Add the SQS queue as an event source for the fillPrice Lambda function
     fillPrice.addEventSource(new lambdaEventSources.SqsEventSource(priceFillQueue, {
-      batchSize: 10, // Adjust the batch size as needed
+      batchSize: 1, // Adjust the batch size as needed
     }));
 
     // API Gateway to route incoming webhooks
