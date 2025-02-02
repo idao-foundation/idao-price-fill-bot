@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const ExecutionScheduleInputSchema = z.object({
     betId: z.number(),
     network: z.string(),
+    isLostBet: z.boolean().default(false),
 });
 
 export function validateExecutionScheduleInput(input: any) {
@@ -15,4 +16,4 @@ export function validateExecutionScheduleInput(input: any) {
   }
 }
 
-export type ExecutionScheduleInput = z.infer<typeof ExecutionScheduleInputSchema>;
+export type ExecutionScheduleInput = z.input<typeof ExecutionScheduleInputSchema>;

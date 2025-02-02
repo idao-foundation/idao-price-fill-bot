@@ -30,7 +30,7 @@ export const AlchemyLogSchema = z.object({
   }),
 });
 
-export type AlchemyLog = z.infer<typeof AlchemyLogSchema>;
+export type AlchemyLog = z.input<typeof AlchemyLogSchema>;
 
 export const AlchemyWebhookEventSchema = z.object({
   webhookId: z.string(),
@@ -51,7 +51,7 @@ export const AlchemyWebhookEventSchema = z.object({
   }),
 });
 
-export type AlchemyWebhookEvent = z.infer<typeof AlchemyWebhookEventSchema>;
+export type AlchemyWebhookEvent = z.input<typeof AlchemyWebhookEventSchema>;
 
 export function validateAlchemyWebhookEvent(event: any) {
   try {
