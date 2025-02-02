@@ -204,7 +204,7 @@ export class PriceFillBotV2Stack extends cdk.Stack {
 
     // Create an EventBridge rule to invoke cronBetChecker Lambda every minute
     const rule = new events.Rule(this, 'CronBetCheckerRule', {
-      schedule: events.Schedule.rate(cdk.Duration.minutes(3)),
+      schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
     });
     rule.addTarget(new targets.LambdaFunction(cronBetChecker));
 
