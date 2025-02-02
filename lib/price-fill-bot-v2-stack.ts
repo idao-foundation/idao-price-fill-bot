@@ -9,6 +9,8 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -35,6 +37,11 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       stringValue: process.env.WALLET_PRIVATE_KEY as string,
     });
 
+    // Create the SSM parameter for the wallet private key
+    const lostBetsBackendUuid = new ssm.StringParameter(this, 'LostBetsBackendUuid', {
+      parameterName: 'LOST_BETS_BACKEND_UUID',
+      stringValue: process.env.LOST_BETS_BACKEND_UUID as string,
+    });
 
     // Create the SQS FIFO queue
     const priceFillAndVisibilityTimeout = cdk.Duration.minutes(5);
@@ -152,11 +159,63 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       },
     });
 
+    // Cron to retrieve the lost bets
+    const cronBetChecker = new NodejsFunction(this, 'cronBetChecker', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      memorySize: 180,
+      timeout: cdk.Duration.minutes(5),
+      handler: 'cronBetChecker',
+      entry: path.join(__dirname, '../src/index.ts'),
+      bundling: {
+        nodeModules: ['aws-sdk'],
+      },
+      environment: {
+        PRICE_FILL_QUEUE_ARN: priceFillQueue.queueArn,
+        SCHEDULE_PRICE_FILL_ROLE_ARN: scheduleExecutionRole.roleArn,
+      },
+      insightsVersion: lambda.LambdaInsightsVersion.fromInsightVersionArn(
+        process.env.LAMBDA_INSIGHTS_EXTENSION as string
+      )
+    });
+
+    // Add permissions to the webhookRouter function to read the LOST_BETS_BACKEND_UUID parameter
+    cronBetChecker.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [lostBetsBackendUuid.parameterArn],
+    }));
+
+    // Add permissions to the cronBetChecker function to create schedules on EventBridge
+    cronBetChecker.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'scheduler:GetSchedule',
+        'scheduler:CreateSchedule',
+        'scheduler:DeleteSchedule',
+      ],
+      resources: ['arn:aws:scheduler:*:*:schedule/*'],
+    }));
+
+    // Add permissions to the cronBetChecker function to pass the schedule execution role
+    cronBetChecker.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'iam:PassRole'
+      ],
+      resources: [scheduleExecutionRole.roleArn],
+    }));
+
+    // Create an EventBridge rule to invoke cronBetChecker Lambda every minute
+    const rule = new events.Rule(this, 'CronBetCheckerRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(3)),
+    });
+    rule.addTarget(new targets.LambdaFunction(cronBetChecker));
+
     // Enable lambda insights
     webhookRouter.role?.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaInsightsExecutionRolePolicy')
     );
     fillPrice.role?.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaInsightsExecutionRolePolicy')
+    );
+    cronBetChecker.role?.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaInsightsExecutionRolePolicy')
     );
   }

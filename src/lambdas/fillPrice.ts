@@ -65,25 +65,25 @@ async function fillPrice(event: any) {
     const contract = new ethers.Contract(contractAddress, abi, wallet);
     const betId = BigInt(message.betId);
 
-    console.log(`${betId}: Checking if fillPrice is executable on network ${message.network} at ${contractAddress}`);
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Checking if fillPrice is executable on network ${message.network} at ${contractAddress}`);
     // Wait for fillPrice to be executable
     while (true) {
         try {
             await contract.fillPrice.staticCall(betId);
-            console.log(`${betId}: fillPrice is executable`);
+            console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): fillPrice is executable`);
             break;
         } catch (err: any) {
             await new Promise(r => setTimeout(r, 2000));
             const betInfo = await contract.betInfo(betId);
             if (betInfo.resultPrice !== 0n) {
-                console.log(`${betId}: resultPrice is already set to ${betInfo.resultPrice}`);
+                console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): resultPrice is already set to ${betInfo.resultPrice}`);
                 return {
                     statusCode: 200,
                     body: JSON.stringify({ message: 'resultPrice is already set' }),
                 }
             }
             if (await contract.isBetCancelled(betId)) {
-                console.log(`${betId}: bet is cancelled`);
+                console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): bet is cancelled`);
                 return {
                     statusCode: 200,
                     body: JSON.stringify({ message: 'bet is cancelled' }),
@@ -96,20 +96,20 @@ async function fillPrice(event: any) {
     // Execute fillPrice
     const estimateGas = await contract.fillPrice.estimateGas(betId);
     const gasLimit = (estimateGas * BigInt(gasPct)) / 100n
-    console.log(`${betId}: will use gasLimit ${gasLimit} (estimated ${estimateGas}, factor ${gasPct}%`)
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): will use gasLimit ${gasLimit} (estimated ${estimateGas}, factor ${gasPct}%`)
 
     const feeData = await provider.getFeeData();
     const currentGasPrice = feeData.gasPrice!;
     const gasPrice = (currentGasPrice * BigInt(gasPricePct)) / 100n;
-    console.log(`${betId}: will use gasPrice ${ethers.formatUnits(gasPrice, 9)} (current ${ethers.formatUnits(currentGasPrice, 9)}, factor ${gasPricePct}%`)
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): will use gasPrice ${ethers.formatUnits(gasPrice, 9)} (current ${ethers.formatUnits(currentGasPrice, 9)}, factor ${gasPricePct}%`)
 
     let nonce = await provider.getTransactionCount(wallet.address);
 
     const tx = await contract.fillPrice(betId, { gasPrice, gasLimit, nonce });
-    console.log(`${betId}: Broadcasted tx: ${tx.hash}`);
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Broadcasted tx: ${tx.hash}`);
 
     await tx.wait();
-    console.log(`${betId}: Transaction mined`);
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Transaction mined`);
 
     return {
         statusCode: 200,

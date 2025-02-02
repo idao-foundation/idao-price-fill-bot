@@ -21,7 +21,7 @@ async function main() {
         const bidEndTimestamp = Number(info.bidEndTimestamp);
 
         const scheduleExecutionAt = new Date(bidEndTimestamp * 1000);
-        const input: ExecutionScheduleInput = { betId, network };
+        const input: ExecutionScheduleInput = { betId, network, isLostBet: true };
         const scheduleId = `fill-price-${betId}-${network}`;
 
         // Schedule the execution

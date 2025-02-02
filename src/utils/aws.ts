@@ -44,6 +44,19 @@ export async function getWalletPrivateKey() {
     return parameter.Parameter.Value;
 }
 
+export async function getLostBetsBackendUuid() {
+    const parameter = await ssm.getParameter({
+        Name: 'LOST_BETS_BACKEND_UUID',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('LOST_BETS_BACKEND_UUID parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
 export async function scheduleExecution(scheduleId: string, input: any, targetArn: string, role: string, executeAt: Date, executionGroup?: string) {
     // check if rule exists
     try {
