@@ -21,9 +21,9 @@ export async function routeEvent(event: AlchemyLog, network: string) {
     if (network == "MATIC_MAINNET") {
         // BetContract
         if (event.account.address == "0x1ad528c5d7906543e369a605f6ef0be503abff76") {
-            // BetPlaced (version without reservation in event)
-            if (event.topics[0] == "0x69d86545c929d33bd342fd834422253fa147698f4ba07e90cd40252fe11fb59f") {
-                console.log('Caught MATIC_MAINNET.BetContract.BetPlacedNoReservation event');
+            // BetPlaced (version with reservation in event)
+            if (event.topics[0] == "0x9e4ad81a505fc8a24407fca5bf334977871fb70d112d0b02a91949862b7894ec") {
+                console.log('Caught MATIC_MAINNET.BetContract.BetPlaced event');
 
                 await handlers.handleBetPlaced(event, network);
 

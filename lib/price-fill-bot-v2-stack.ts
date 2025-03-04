@@ -88,6 +88,12 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       resources: [alchemyRequestUuid.parameterArn],
     }));
 
+    // Add permissions to the webhookRouter function to read the ALCHEMY_RPC_KEY parameter
+    webhookRouter.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [alchemyRpcKey.parameterArn],
+    }));
+
     // Add permissions to the webhookRouter function to create schedules on EventBridge
     webhookRouter.addToRolePolicy(new iam.PolicyStatement({
       actions: [
@@ -182,6 +188,12 @@ export class PriceFillBotV2Stack extends cdk.Stack {
     cronBetChecker.addToRolePolicy(new iam.PolicyStatement({
       actions: ['ssm:GetParameter'],
       resources: [lostBetsBackendUuid.parameterArn],
+    }));
+
+    // Add permissions to the cronBetChecker function to read the ALCHEMY_RPC_KEY parameter
+    cronBetChecker.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [alchemyRpcKey.parameterArn],
     }));
 
     // Add permissions to the cronBetChecker function to create schedules on EventBridge

@@ -22,6 +22,36 @@ export async function handleBetPlaced(event: AlchemyLog, network: string): Promi
         )[3] as bigint;
     }
 
+    let chainId: number;
+    let contractAddress: string;
+    switch (network) {
+        case "ETH_SEPOLIA":
+            chainId = 11155111;
+            contractAddress = "0x5E945200e9eFF3d4414a4466B5008643dceC7073";
+            break;
+        case "MATIC_MAINNET":
+            chainId = 137;
+            contractAddress = "0x1Ad528c5d7906543E369a605f6EF0Be503aBff76";
+            break;
+        default:
+            throw new Error("Invalid network");
+    }
+
+    const abi = [
+        "function fillPrice(uint256 betId) external",
+        "function betInfo(uint256 _betId) external view returns (address bidder, uint256 poolId, uint256 bidPrice, uint256 resultPrice, uint256 bidStartTimestamp, uint256 bidEndTimestamp, uint256 bidSettleTimestamp, uint256 priceAtBid)",
+        "function isBetCancelled(uint256 _betId) external view returns (bool)"
+    ];
+    const provider = new ethers.AlchemyProvider(
+        chainId,
+        await aws.getAlchemyRpcKey()
+    );
+    const contract = new ethers.Contract(contractAddress, abi, provider);
+    const betInfo = await contract.betInfo(BigInt(betId));
+    if (betInfo.resultPrice != 0n || (await contract.isBetCancelled(BigInt(betId)))) {
+        console.log(`Bet ${betId} is already filled or cancelled`);
+        return;
+    }
 
     const scheduleExecutionAt = new Date(Number(bidEndTimestamp) * 1000);
     const input: ExecutionScheduleInput = {
@@ -39,5 +69,3 @@ export async function handleBetPlaced(event: AlchemyLog, network: string): Promi
         network
     );
 }
-
-// 0x00000000000000000000000000000000000000000000000000470de4df82000000000000000000000000000000000000000000000000000000000946b5a749000000000000000000000000000000000000000000000000000000000000000e1000000000000000000000000000000000000000000000000000000000679e7dc10000000000000000000000000000000000000000000000000000000000005460000000000000000000000000000000000000000000000000000009467619c100

@@ -109,7 +109,7 @@ async function fillPrice(event: any) {
     console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Broadcasted tx: ${tx.hash}`);
 
     await tx.wait();
-    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Transaction mined`);
+    console.log(`${betId} (${message.isLostBet ? "lost bet" : ""}): Transaction mined on ${message.network}`);
 
     return {
         statusCode: 200,
