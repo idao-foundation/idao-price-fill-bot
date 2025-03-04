@@ -43,6 +43,22 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       stringValue: process.env.LOST_BETS_BACKEND_UUID as string,
     });
 
+    // Create the SSM parameter for the Discord API key
+    const discordApiKey= new ssm.StringParameter(this, 'DiscordApiKey', {
+      parameterName: 'DISCORD_API_KEY',
+      stringValue: process.env.DISCORD_API_KEY as string,
+    });
+
+    // Create the SSM parameter for the Discord report channel ID
+    const discordReportChannelIdPolygon = new ssm.StringParameter(this, 'DiscordReportChannelIdPolygon', {
+      parameterName: 'DISCORD_REPORT_CHANNEL_ID_POLYGON',
+      stringValue: process.env.DISCORD_REPORT_CHANNEL_ID_POLYGON as string,
+    });
+    const discordReportChannelIdSepolia = new ssm.StringParameter(this, 'DiscordReportChannelIdSepolia', {
+      parameterName: 'DISCORD_REPORT_CHANNEL_ID_SEPOLIA',
+      stringValue: process.env.DISCORD_REPORT_CHANNEL_ID_SEPOLIA as string,
+    });
+
     // Create the SQS FIFO queue
     const priceFillAndVisibilityTimeout = cdk.Duration.minutes(5);
     const priceFillQueue = new sqs.Queue(this, 'PriceFillQueue', {
@@ -219,6 +235,47 @@ export class PriceFillBotV2Stack extends cdk.Stack {
       schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
     });
     rule.addTarget(new targets.LambdaFunction(cronBetChecker));
+
+    // Balance report Lambda function
+    const balanceReport = new NodejsFunction(this, 'balanceReport', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      memorySize: 180,
+      timeout: cdk.Duration.minutes(5),
+      handler: 'balanceReport',
+      entry: path.join(__dirname, '../src/index.ts'),
+      bundling: {
+        nodeModules: ['aws-sdk'],
+      },
+    });
+
+    // Add permissions to the balanceReport function to read the DISCORD_API_KEY parameter
+    balanceReport.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [discordApiKey.parameterArn],
+    }));
+
+    // Add permissions to the balanceReport function to read the DISCORD_REPORT_CHANNEL_ID_POLYGON parameter
+    balanceReport.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [discordReportChannelIdPolygon.parameterArn],
+    }));
+
+    // Add permissions to the balanceReport function to read the DISCORD_REPORT_CHANNEL_ID_SEPOLIA parameter
+    balanceReport.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [discordReportChannelIdSepolia.parameterArn],
+    }));
+
+    balanceReport.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [alchemyRpcKey.parameterArn],
+    }))
+
+    // Create an EventBridge rule to invoke balanceReport Lambda every 15 minutes
+    const balanceReportRule = new events.Rule(this, 'BalanceReportRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(15)),
+    });
+    balanceReportRule.addTarget(new targets.LambdaFunction(balanceReport));
 
     // Enable lambda insights
     webhookRouter.role?.addManagedPolicy(

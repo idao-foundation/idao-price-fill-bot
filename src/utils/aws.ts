@@ -31,6 +31,45 @@ export async function getAlchemyRpcKey() {
     return parameter.Parameter.Value;
 }
 
+export async function getDiscordApiKey() {
+    const parameter = await ssm.getParameter({
+        Name: 'DISCORD_API_KEY',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('DISCORD_API_KEY parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
+export async function getDiscordReportChannelIdPolygon() {
+    const parameter = await ssm.getParameter({
+        Name: 'DISCORD_REPORT_CHANNEL_ID_POLYGON',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('DISCORD_REPORT_CHANNEL_ID_POLYGON parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
+export async function getDiscordReportChannelIdSepolia() {
+    const parameter = await ssm.getParameter({
+        Name: 'DISCORD_REPORT_CHANNEL_ID_SEPOLIA',
+        WithDecryption: true,
+    }).promise();
+
+    if (!parameter.Parameter?.Value) {
+        throw new Error('DISCORD_REPORT_CHANNEL_ID_SEPOLIA parameter not found');
+    }
+
+    return parameter.Parameter.Value;
+}
+
 export async function getWalletPrivateKey() {
     const parameter = await ssm.getParameter({
         Name: 'WALLET_PRIVATE_KEY',
